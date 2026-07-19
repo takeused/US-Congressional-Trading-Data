@@ -3,7 +3,6 @@ cache/
 
 # 파생 산출물 (파이프라인·대시보드가 생성)
 data/*.json
-dashboard/index_*.html
 
 # 파이썬
 __pycache__/
