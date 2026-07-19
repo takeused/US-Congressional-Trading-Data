@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>미 의회 매매 데이터 · 2026</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+         margin: 0; padding: 24px; line-height: 1.5;
+         background: #0f1115; color: #e6e8eb; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: #9aa4af; font-size: 13px; margin-bottom: 20px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr));
+           gap: 12px; margin-bottom: 24px; }
+  .card { background: #1a1d24; border: 1px solid #262b34; border-radius: 10px; padding: 14px; }
+  .card .v { font-size: 26px; font-weight: 700; }
+  .card .l { color: #9aa4af; font-size: 12px; }
+  section { background: #1a1d24; border: 1px solid #262b34; border-radius: 10px;
+            padding: 16px; margin-bottom: 20px; overflow-x: auto; }
+  section h2 { font-size: 15px; margin: 0 0 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: right; padding: 7px 10px; border-bottom: 1px solid #262b34; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: #9aa4af; font-weight: 600; }
+  .pos { color: #4ade80; }
+  .neg { color: #f87171; }
+  .bar { display: inline-block; height: 8px; border-radius: 4px; vertical-align: middle; }
+  .buy { background: #4ade80; } .sell { background: #f87171; }
+  .disc { color: #9aa4af; font-size: 12px; border-top: 1px solid #262b34;
+          padding-top: 14px; margin-top: 8px; }
+  .n { color: #9aa4af; font-size: 11px; }
+</style>
+</head>
+<body>
+<h1>🏛️ 미 의회 매매 데이터 · 2026</h1>
+<div class="sub">미국 하원 재무공시(PTR) · STOCK Act 기반 공개 데이터 · 정보 제공용 (투자 권유 아님)</div>
+
+<div class="cards">
+  <div class="card"><div class="v">6,352</div><div class="l">전체 거래</div></div>
+  <div class="card"><div class="v">1,247</div><div class="l">주식 거래</div></div>
+  <div class="card"><div class="v">55</div><div class="l">의원 수</div></div>
+  <div class="card"><div class="v">1,221</div><div class="l">수익률 계산</div></div>
+  <div class="card"><div class="v">1.67%</div><div class="l">평균 수익률</div></div>
+  <div class="card"><div class="v">3,800</div><div class="l">OCR 복원 (매수 110·매도 58)</div></div>
+</div>
+
+<section>
+  <h2>📈 의원별 성과 <span class="n">(공시일 종가 진입 → 현재가 · n≥5만 표시)</span></h2>
+  <table id="members"><thead><tr>
+    <th>의원</th><th>표본수 n</th><th>평균 수익률</th><th>승률</th></tr></thead><tbody></tbody></table>
+</section>
+
+<section>
+  <h2>🧭 섹터별 수급 <span class="n">(매수/매도 건수)</span></h2>
+  <table id="sectors"><thead><tr>
+    <th>섹터</th><th>매수</th><th>매도</th><th>합계</th><th></th></tr></thead><tbody></tbody></table>
+</section>
+
+<section>
+  <h2>🔥 인기 종목 Top 20 <span class="n">(거래 건수)</span></h2>
+  <table id="tickers"><thead><tr>
+    <th>티커</th><th>회사명</th><th>매수</th><th>매도</th><th>합계</th></tr></thead><tbody></tbody></table>
+</section>
+
+<section>
+  <h2>🕒 최근 거래 <span class="n">(공시일 기준 · 전자+OCR)</span></h2>
+  <table id="recent"><thead><tr>
+    <th>공시일</th><th>의원</th><th>유형</th><th>종목/자산</th><th>금액</th><th>출처</th></tr></thead><tbody></tbody></table>
+</section>
+
+<div class="disc">
+  ⚠️ 표본수(n)가 작을수록 신뢰도가 낮습니다. n&lt;5 의원은 랭킹에서 제외했습니다.
+  과거 성과는 미래 수익을 보장하지 않으며, 의원 매매 추종의 실증 알파는 대체로 약하고
+  표본편향이 큽니다. 본 대시보드는 <b>투명성·참고용</b> 도구이지 자동매매 신호가 아닙니다.
+</div>
+
+<script>
+const DATA = {"summary": {"transactions": 6352, "stock_txns": 1247, "enriched": 1221, "members": 55, "ocr_txns": 3800, "ocr_buy": 110, "ocr_sell": 58, "avg_return": 1.67}, "members": [{"name": "Cleo Fields", "n": 20, "avg_return": 14.16, "win_rate": 75.0}, {"name": "Brian Babin", "n": 9, "avg_return": 12.76, "win_rate": 77.8}, {"name": "Tim Moore", "n": 26, "avg_return": 8.97, "win_rate": 57.7}, {"name": "Byron Donalds", "n": 13, "avg_return": 8.26, "win_rate": 69.2}, {"name": "Maria Elvira Salazar", "n": 54, "avg_return": 6.82, "win_rate": 61.1}, {"name": "Julia Letlow", "n": 157, "avg_return": 5.99, "win_rate": 53.5}, {"name": "Lloyd Doggett", "n": 13, "avg_return": 5.81, "win_rate": 61.5}, {"name": "April McClain Delaney", "n": 15, "avg_return": 5.12, "win_rate": 66.7}, {"name": "Nancy Pelosi", "n": 6, "avg_return": 4.86, "win_rate": 83.3}, {"name": "Tim Walberg", "n": 9, "avg_return": 3.84, "win_rate": 66.7}, {"name": "August Lee Pfluger", "n": 7, "avg_return": 2.88, "win_rate": 85.7}, {"name": "Richard Dean Dr McCormick", "n": 25, "avg_return": 2.03, "win_rate": 60.0}, {"name": "Gilbert Cisneros", "n": 530, "avg_return": 1.44, "win_rate": 53.4}, {"name": "Jonathan Jackson", "n": 28, "avg_return": 1.02, "win_rate": 53.6}, {"name": "Richard W. Allen", "n": 12, "avg_return": 0.91, "win_rate": 41.7}, {"name": "Matthew Robert Van Epps", "n": 7, "avg_return": 0.86, "win_rate": 57.1}, {"name": "Jared Moskowitz", "n": 28, "avg_return": 0.63, "win_rate": 50.0}, {"name": "David J. Taylor", "n": 78, "avg_return": 0.22, "win_rate": 57.7}, {"name": "Rick Larsen", "n": 13, "avg_return": -0.78, "win_rate": 46.2}, {"name": "Thomas H. Kean", "n": 39, "avg_return": -2.31, "win_rate": 41.0}, {"name": "Julie Johnson", "n": 8, "avg_return": -2.45, "win_rate": 50.0}, {"name": "Josh Gottheimer", "n": 22, "avg_return": -5.97, "win_rate": 31.8}, {"name": "Steve Cohen", "n": 8, "avg_return": -8.95, "win_rate": 12.5}, {"name": "Mark Alford", "n": 5, "avg_return": -10.82, "win_rate": 40.0}, {"name": "Elizabeth Fletcher", "n": 11, "avg_return": -11.12, "win_rate": 18.2}, {"name": "Christian D. Menefee", "n": 5, "avg_return": -11.35, "win_rate": 40.0}, {"name": "Lloyd K. Smucker", "n": 7, "avg_return": -14.06, "win_rate": 0.0}, {"name": "Kevin Hern", "n": 13, "avg_return": -17.26, "win_rate": 23.1}, {"name": "Kelly Louise Morrison", "n": 5, "avg_return": -19.13, "win_rate": 0.0}, {"name": "Dwight Evans", "n": 7, "avg_return": -19.31, "win_rate": 42.9}], "sectors": [{"sector": "Unknown", "buy": 355, "sell": 408, "total": 763}, {"sector": "Technology", "buy": 53, "sell": 65, "total": 118}, {"sector": "Industrials", "buy": 48, "sell": 18, "total": 66}, {"sector": "Financial Services", "buy": 28, "sell": 36, "total": 64}, {"sector": "Consumer Cyclical", "buy": 27, "sell": 31, "total": 58}, {"sector": "Healthcare", "buy": 34, "sell": 24, "total": 58}, {"sector": "Energy", "buy": 12, "sell": 20, "total": 32}, {"sector": "Consumer Defensive", "buy": 9, "sell": 14, "total": 23}, {"sector": "Real Estate", "buy": 6, "sell": 9, "total": 15}, {"sector": "Communication Services", "buy": 6, "sell": 9, "total": 15}, {"sector": "Utilities", "buy": 11, "sell": 3, "total": 14}, {"sector": "Basic Materials", "buy": 4, "sell": 1, "total": 5}], "tickers": [{"ticker": "AMZN", "name": "Amazon.com, Inc.", "buy": 12, "sell": 10, "total": 22}, {"ticker": "AAPL", "name": "Apple Inc.", "buy": 9, "sell": 10, "total": 19}, {"ticker": "HD", "name": "Home Depot, Inc.", "buy": 11, "sell": 5, "total": 16}, {"ticker": "T", "name": "AT&T Inc.", "buy": 8, "sell": 7, "total": 15}, {"ticker": "NVDA", "name": "NVIDIA Corporation", "buy": 7, "sell": 8, "total": 15}, {"ticker": "PG", "name": "Procter & Gamble Company", "buy": 8, "sell": 6, "total": 14}, {"ticker": "UNH", "name": "UnitedHealth Group Incorporated", "buy": 8, "sell": 6, "total": 14}, {"ticker": "ABT", "name": "Abbott Laboratories Common Stock", "buy": 6, "sell": 7, "total": 13}, {"ticker": "MSFT", "name": "Microsoft Corporation", "buy": 3, "sell": 9, "total": 12}, {"ticker": "CVX", "name": "Chevron Corporation Common Stock", "buy": 4, "sell": 7, "total": 11}, {"ticker": "FLEX", "name": "Flex Ltd.", "buy": 0, "sell": 11, "total": 11}, {"ticker": "FSV", "name": "FirstService Corporation", "buy": 11, "sell": 0, "total": 11}, {"ticker": "MU", "name": "Micron Technology, Inc.", "buy": 5, "sell": 6, "total": 11}, {"ticker": "CRM", "name": "Salesforce, Inc. Common Stock", "buy": 6, "sell": 5, "total": 11}, {"ticker": "ACN", "name": "Accenture plc Class A Ordinary Shares", "buy": 4, "sell": 6, "total": 10}, {"ticker": "AMD", "name": "Advanced Micro Devices, Inc.", "buy": 8, "sell": 2, "total": 10}, {"ticker": "BA", "name": "Boeing Company", "buy": 6, "sell": 4, "total": 10}, {"ticker": "WRB", "name": "W.R. Berkley Corporation Common", "buy": 0, "sell": 10, "total": 10}, {"ticker": "GOOGL", "name": "Alphabet Inc.", "buy": 3, "sell": 7, "total": 10}, {"ticker": "LRCX", "name": "Lam Research Corporation", "buy": 2, "sell": 8, "total": 10}], "recent": [{"date": "07/14/2026", "filer": "Harold Dallas Rogers", "type": "", "label": "2016A5000Due6/15/33FullCall", "amount": "", "source": "ocr"}, {"date": "07/14/2026", "filer": "Debbie Wasserman Schultz", "type": "sell", "label": "Ichor Holdings - Ordinary Shares", "amount": "$2,722.50", "source": "text"}, {"date": "07/13/2026", "filer": "Thomas H. Kean", "type": "sell", "label": "JNJ", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/13/2026", "filer": "Thomas H. Kean", "type": "sell", "label": "MKL", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/13/2026", "filer": "Thomas H. Kean", "type": "sell", "label": "SPGI", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/13/2026", "filer": "Rudy C. Yakym", "type": "buy", "label": "Treasury Bill (3-Month, Matures", "amount": "$15,001", "source": "text"}, {"date": "07/09/2026", "filer": "Rick Larsen", "type": "sell", "label": "ABT", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/09/2026", "filer": "Rick Larsen", "type": "buy", "label": "Amphenol Corporation Common", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/09/2026", "filer": "Rick Larsen", "type": "buy", "label": "McKesson Corporation Common", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/09/2026", "filer": "Rick Larsen", "type": "sell", "label": "S&P Global Inc. Common Stock", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/08/2026", "filer": "Mike Kelly", "type": "sell", "label": "California St Go Call 12/1/27 4%", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/08/2026", "filer": "Richard Dean Dr McCormick", "type": "buy", "label": "ABT", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/08/2026", "filer": "Richard Dean Dr McCormick", "type": "buy", "label": "ABT", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/08/2026", "filer": "Richard Dean Dr McCormick", "type": "sell", "label": "ADI", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/08/2026", "filer": "Richard Dean Dr McCormick", "type": "sell", "label": "ADI", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/08/2026", "filer": "Richard Dean Dr McCormick", "type": "sell", "label": "BLK", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/08/2026", "filer": "Richard Dean Dr McCormick", "type": "sell", "label": "CSCO", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/08/2026", "filer": "Richard Dean Dr McCormick", "type": "sell", "label": "CSCO", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/08/2026", "filer": "Richard Dean Dr McCormick", "type": "buy", "label": "Intercontinental Exchange Inc.", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/08/2026", "filer": "Richard Dean Dr McCormick", "type": "sell", "label": "IMCB", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/08/2026", "filer": "Richard Dean Dr McCormick", "type": "buy", "label": "LHX", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/08/2026", "filer": "Richard Dean Dr McCormick", "type": "buy", "label": "LHX", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/08/2026", "filer": "Richard Dean Dr McCormick", "type": "sell", "label": "SPSM", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/08/2026", "filer": "Richard Dean Dr McCormick", "type": "sell", "label": "UNH", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/08/2026", "filer": "Richard Dean Dr McCormick", "type": "sell", "label": "UNH", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/08/2026", "filer": "Richard Dean Dr McCormick", "type": "sell", "label": "Vanguard Mega Cap Growth ETF", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/08/2026", "filer": "Richard Dean Dr McCormick", "type": "sell", "label": "MGK", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/08/2026", "filer": "Tim Moore", "type": "sell", "label": "DoorDash, Inc. - Common Stock", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/07/2026", "filer": "Richard W. Allen", "type": "sell", "label": "INTU", "amount": "$15,001", "source": "text"}, {"date": "07/07/2026", "filer": "Josh Gottheimer", "type": "sell", "label": "Agree Realty Corporation Common", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/07/2026", "filer": "Josh Gottheimer", "type": "sell", "label": "Alibaba Group Holding Limited", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/07/2026", "filer": "Josh Gottheimer", "type": "sell", "label": "Booking Holdings Inc. - Common", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/07/2026", "filer": "Josh Gottheimer", "type": "sell", "label": "Insmed Incorporated - Common", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/07/2026", "filer": "Josh Gottheimer", "type": "sell", "label": "NSRGY", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/07/2026", "filer": "Josh Gottheimer", "type": "sell", "label": "NTDOY", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/07/2026", "filer": "Josh Gottheimer", "type": "sell", "label": "NVZMY", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/07/2026", "filer": "John McGuire", "type": "sell", "label": "BLK", "amount": "$1,001 - $15,000", "source": "text"}, {"date": "07/06/2026", "filer": "Debbie Dingell", "type": "exchange", "label": "HONAV", "amount": "$50,001", "source": "text"}, {"date": "07/06/2026", "filer": "Debbie Dingell", "type": "exchange", "label": "HONAV", "amount": "$15,001", "source": "text"}, {"date": "07/06/2026", "filer": "Lloyd Doggett", "type": "buy", "label": "HD", "amount": "$1,001 - $15,000", "source": "text"}]};
+const fmtPct = v => (v>0?'+':'') + v + '%';
+const cls = v => v>0?'pos':(v<0?'neg':'');
+const esc = s => String(s).replace(/[&<>"]/g, c => (
+  {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const TYPE_KO = {buy:'매수', sell:'매도', exchange:'교환'};
+
+const mb = document.querySelector('#members tbody');
+DATA.members.forEach(m => {
+  mb.insertAdjacentHTML('beforeend',
+    `<tr><td>${esc(m.name)}</td><td>${m.n}</td>`+
+    `<td class="${cls(m.avg_return)}">${fmtPct(m.avg_return)}</td>`+
+    `<td>${m.win_rate}%</td></tr>`);
+});
+if (!DATA.members.length) mb.innerHTML = '<tr><td colspan="4">n≥5 의원 없음</td></tr>';
+
+const maxSec = Math.max(1, ...DATA.sectors.map(x=>x.total));
+const sb = document.querySelector('#sectors tbody');
+DATA.sectors.forEach(x => {
+  const w = Math.round(120*x.total/maxSec);
+  sb.insertAdjacentHTML('beforeend',
+    `<tr><td>${x.sector}</td><td>${x.buy}</td><td>${x.sell}</td>`+
+    `<td>${x.total}</td><td style="text-align:left">`+
+    `<span class="bar buy" style="width:${Math.round(w*x.buy/x.total)}px"></span>`+
+    `<span class="bar sell" style="width:${Math.round(w*x.sell/x.total)}px"></span></td></tr>`);
+});
+
+const tb = document.querySelector('#tickers tbody');
+DATA.tickers.forEach(x => {
+  tb.insertAdjacentHTML('beforeend',
+    `<tr><td>${esc(x.ticker)}</td><td style="text-align:left">${esc(x.name)}</td>`+
+    `<td>${x.buy}</td><td>${x.sell}</td><td>${x.total}</td></tr>`);
+});
+
+const rb = document.querySelector('#recent tbody');
+DATA.recent.forEach(x => {
+  const ty = TYPE_KO[x.type] || '-';
+  const tcls = x.type==='buy'?'pos':(x.type==='sell'?'neg':'');
+  rb.insertAdjacentHTML('beforeend',
+    `<tr><td>${esc(x.date)}</td><td style="text-align:left">${esc(x.filer)}</td>`+
+    `<td class="${tcls}">${ty}</td><td style="text-align:left">${esc(x.label)}</td>`+
+    `<td style="text-align:left">${esc(x.amount) || '-'}</td>`+
+    `<td class="n">${x.source==='ocr'?'OCR':'전자'}</td></tr>`);
+});
+</script>
+</body>
+</html>
