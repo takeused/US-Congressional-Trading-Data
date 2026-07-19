@@ -68,6 +68,8 @@ def _aggregate(recs: list[dict]) -> dict:
             "enriched": len(enriched),
             "members": len(by_member),
             "ocr_txns": sum(1 for r in recs if r.get("source") == "ocr"),
+            "ocr_buy": sum(1 for r in recs if r.get("source") == "ocr" and r["type"] == "buy"),
+            "ocr_sell": sum(1 for r in recs if r.get("source") == "ocr" and r["type"] == "sell"),
             "avg_return": round(sum(r["return_pct"] for r in enriched) / len(enriched), 2)
             if enriched else None,
         },
@@ -126,7 +128,7 @@ def _html(year: int, agg: dict) -> str:
   <div class="card"><div class="v">{s['members']}</div><div class="l">의원 수</div></div>
   <div class="card"><div class="v">{s['enriched']:,}</div><div class="l">수익률 계산</div></div>
   <div class="card"><div class="v">{'-' if s['avg_return'] is None else f"{s['avg_return']}%"}</div><div class="l">평균 수익률</div></div>
-  <div class="card"><div class="v">{s['ocr_txns']:,}</div><div class="l">OCR 복원 (구형양식)</div></div>
+  <div class="card"><div class="v">{s['ocr_txns']:,}</div><div class="l">OCR 복원 (매수 {s['ocr_buy']}·매도 {s['ocr_sell']})</div></div>
 </div>
 
 <section>

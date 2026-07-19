@@ -8,7 +8,7 @@ from config import DATA_DIR, ensure_dirs
 from fetch_index import fetch_ptr_filings
 from fetch_pdf import fetch_pdf
 from extract import extract_text, ScannedPdfError
-from parse import parse_text, parse_scanned_text, Transaction
+from parse import parse_text, Transaction
 
 
 def run(year: int, *, limit: int | None = None, do_enrich: bool = False,
@@ -38,14 +38,18 @@ def run(year: int, *, limit: int | None = None, do_enrich: bool = False,
             text = extract_text(pdf)
         except ScannedPdfError:
             stats["scanned"] += 1
-            if do_ocr:  # 스캔 양식 → OCR fallback (구형 종이양식 전용 파서)
+            if do_ocr:  # 스캔 양식 → OCR + 픽셀 그리드 분석 (거래유형 포함)
                 try:
-                    from ocr import ocr_pdf
-                    otxt = ocr_pdf(pdf)
-                    otxns = parse_scanned_text(
-                        otxt, filer=filer, state_dst=f.state_dst, doc_id=f.doc_id)
-                    all_txns.extend(otxns)
-                    stats["ocr"] += len(otxns)
+                    from ocr import extract_scanned_rows
+                    for r in extract_scanned_rows(pdf):
+                        all_txns.append(Transaction(
+                            filer=filer, state_dst=f.state_dst, doc_id=f.doc_id,
+                            asset_name=r["asset_name"], ticker=r["ticker"],
+                            asset_type=None, owner=r["owner"], type=r["type"],
+                            amount="",  # 금액은 체크박스 픽셀분석으로 판별 불가
+                            transaction_date=r["transaction_date"],
+                            notification_date=r["notification_date"], source="ocr"))
+                        stats["ocr"] += 1
                 except Exception as e:
                     print(f"  ! ocr {f.doc_id}: {e}", file=sys.stderr)
             continue
