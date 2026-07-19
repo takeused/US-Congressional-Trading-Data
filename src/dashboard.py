@@ -1,5 +1,6 @@
 # 파싱·인리치된 JSON을 읽어 자립형 HTML 대시보드를 생성하는 모듈
 import json
+import re
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -50,16 +51,44 @@ def _aggregate(recs: list[dict]) -> dict:
         reverse=True,
     )
 
-    # 인기 티커 (거래 건수)
+    # 티커 → 대표 회사명 (괄호·코드 제거)
+    names: dict[str, str] = {}
+    for r in stock:
+        if r["ticker"] not in names and r.get("asset_name"):
+            nm = re.sub(r"\s*(?:[\(\[]| - ).*", "", r["asset_name"]).strip(" -,")
+            if nm:
+                names[r["ticker"]] = nm
+
+    # 인기 티커 (거래 건수) + 회사명
     by_ticker = defaultdict(lambda: {"buy": 0, "sell": 0})
     for r in stock:
         if r["type"] in ("buy", "sell"):
             by_ticker[r["ticker"]][r["type"]] += 1
     tickers = sorted(
-        ({"ticker": t, **v, "total": v["buy"] + v["sell"]} for t, v in by_ticker.items()),
+        ({"ticker": t, "name": names.get(t, ""), **v, "total": v["buy"] + v["sell"]}
+         for t, v in by_ticker.items()),
         key=lambda x: x["total"],
         reverse=True,
     )[:20]
+
+    # 최근 거래 (공시일 내림차순, 전자·OCR 모두) — 개별 거래 원자료 노출
+    def _dkey(r):
+        try:
+            m, d, y = r["notification_date"].split("/")
+            return (int(y), int(m), int(d))
+        except (ValueError, AttributeError):
+            return (0, 0, 0)
+    recent = [
+        {
+            "date": r["notification_date"],
+            "filer": r["filer"],
+            "type": r["type"] or "",
+            "label": r["ticker"] or (r.get("asset_name") or "")[:32],
+            "amount": r["amount"] or "",
+            "source": r.get("source", "text"),
+        }
+        for r in sorted(recs, key=_dkey, reverse=True)[:40]
+    ]
 
     return {
         "summary": {
@@ -76,6 +105,7 @@ def _aggregate(recs: list[dict]) -> dict:
         "members": ranked_members,
         "sectors": sectors,
         "tickers": tickers,
+        "recent": recent,
     }
 
 
@@ -146,7 +176,13 @@ def _html(year: int, agg: dict) -> str:
 <section>
   <h2>🔥 인기 종목 Top 20 <span class="n">(거래 건수)</span></h2>
   <table id="tickers"><thead><tr>
-    <th>티커</th><th>매수</th><th>매도</th><th>합계</th></tr></thead><tbody></tbody></table>
+    <th>티커</th><th>회사명</th><th>매수</th><th>매도</th><th>합계</th></tr></thead><tbody></tbody></table>
+</section>
+
+<section>
+  <h2>🕒 최근 거래 <span class="n">(공시일 기준 · 전자+OCR)</span></h2>
+  <table id="recent"><thead><tr>
+    <th>공시일</th><th>의원</th><th>유형</th><th>종목/자산</th><th>금액</th><th>출처</th></tr></thead><tbody></tbody></table>
 </section>
 
 <div class="disc">
@@ -159,11 +195,14 @@ def _html(year: int, agg: dict) -> str:
 const DATA = {data_json};
 const fmtPct = v => (v>0?'+':'') + v + '%';
 const cls = v => v>0?'pos':(v<0?'neg':'');
+const esc = s => String(s).replace(/[&<>"]/g, c => (
+  {{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}}[c]));
+const TYPE_KO = {{buy:'매수', sell:'매도', exchange:'교환'}};
 
 const mb = document.querySelector('#members tbody');
 DATA.members.forEach(m => {{
   mb.insertAdjacentHTML('beforeend',
-    `<tr><td>${{m.name}}</td><td>${{m.n}}</td>`+
+    `<tr><td>${{esc(m.name)}}</td><td>${{m.n}}</td>`+
     `<td class="${{cls(m.avg_return)}}">${{fmtPct(m.avg_return)}}</td>`+
     `<td>${{m.win_rate}}%</td></tr>`);
 }});
@@ -183,7 +222,19 @@ DATA.sectors.forEach(x => {{
 const tb = document.querySelector('#tickers tbody');
 DATA.tickers.forEach(x => {{
   tb.insertAdjacentHTML('beforeend',
-    `<tr><td>${{x.ticker}}</td><td>${{x.buy}}</td><td>${{x.sell}}</td><td>${{x.total}}</td></tr>`);
+    `<tr><td>${{esc(x.ticker)}}</td><td style="text-align:left">${{esc(x.name)}}</td>`+
+    `<td>${{x.buy}}</td><td>${{x.sell}}</td><td>${{x.total}}</td></tr>`);
+}});
+
+const rb = document.querySelector('#recent tbody');
+DATA.recent.forEach(x => {{
+  const ty = TYPE_KO[x.type] || '-';
+  const tcls = x.type==='buy'?'pos':(x.type==='sell'?'neg':'');
+  rb.insertAdjacentHTML('beforeend',
+    `<tr><td>${{esc(x.date)}}</td><td style="text-align:left">${{esc(x.filer)}}</td>`+
+    `<td class="${{tcls}}">${{ty}}</td><td style="text-align:left">${{esc(x.label)}}</td>`+
+    `<td style="text-align:left">${{esc(x.amount) || '-'}}</td>`+
+    `<td class="n">${{x.source==='ocr'?'OCR':'전자'}}</td></tr>`);
 }});
 </script>
 </body>
