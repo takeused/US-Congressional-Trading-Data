@@ -1,12 +1,14 @@
 # 파싱된 거래에 yfinance 시세·섹터·수익률을 붙이는 인리치 모듈
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
 
 from parse import Transaction
 
 # yfinance는 선택 의존 — 미설치 시 인리치 스킵
 try:
     import yfinance as yf
+    import pandas as pd
     _HAS_YF = True
 except ImportError:
     _HAS_YF = False
@@ -17,11 +19,36 @@ def _yf_symbol(ticker: str) -> str:
     return ticker.replace(".", "-")
 
 
-def _close_on_or_after(hist, date: datetime):
-    """해당 날짜 이후 첫 거래일 종가를 반환 (없으면 None)."""
-    after = hist[hist.index.date >= date.date()]
+def _batch_closes(yf_symbols: list[str]) -> dict:
+    """전 종목의 2년 종가를 한 번의 배치 요청으로 받아 심볼별 Series로 반환.
+
+    yf.download(group_by='ticker')는 MultiIndex(심볼, 필드) 컬럼을 준다.
+    단일 심볼이면 평면 컬럼이라 두 경우를 모두 처리한다.
+    """
+    if not yf_symbols:
+        return {}
+    df = yf.download(yf_symbols, period="2y", auto_adjust=True,
+                     group_by="ticker", threads=True, progress=False)
+    out: dict = {}
+    if df is None or df.empty:
+        return out
+    multi = isinstance(df.columns, pd.MultiIndex)
+    for sym in yf_symbols:
+        try:
+            close = df[sym]["Close"] if multi else df["Close"]
+        except (KeyError, TypeError):
+            continue
+        close = close.dropna()
+        if len(close):
+            out[sym] = close
+    return out
+
+
+def _close_on_or_after(close, date: datetime):
+    """종가 Series에서 해당 날짜 이후 첫 거래일 종가를 반환 (없으면 None)."""
+    after = close[close.index.date >= date.date()]
     if len(after):
-        return float(after["Close"].iloc[0])
+        return float(after.iloc[0])
     return None
 
 
@@ -38,34 +65,47 @@ def enrich_transactions(txns: list[Transaction], year: int) -> None:
     # 인리치 대상: 티커 있고 주식인 거래
     targets = [t for t in txns if t.ticker and t.asset_type == "stock"]
     symbols = sorted({t.ticker for t in targets})
-    print(f"  인리치: 고유 티커 {len(symbols)}개 조회", file=sys.stderr)
+    if not symbols:
+        return
+    sym_map = {tk: _yf_symbol(tk) for tk in symbols}  # PTR티커 → yf심볼
+    print(f"  인리치: 고유 티커 {len(symbols)}개 (배치 다운로드 + 병렬 조회)", file=sys.stderr)
 
+    # 1) 가격 이력: 한 번의 배치 요청으로 전 종목 다운로드 (가장 큰 속도 이득)
+    closes = _batch_closes(list(sym_map.values()))
+
+    # 2) 섹터·산업: .info는 종목당 느리므로 스레드풀로 병렬 조회
+    def _fetch_info(tk: str):
+        try:
+            info = yf.Ticker(sym_map[tk]).info
+            return tk, info.get("sector"), info.get("industry")
+        except Exception:
+            return tk, None, None
+
+    with ThreadPoolExecutor(max_workers=12) as ex:
+        infos = {tk: (sec, ind) for tk, sec, ind in ex.map(_fetch_info, symbols)}
+
+    # 종목별 캐시 구성
     cache: dict[str, dict] = {}
     for tk in symbols:
-        try:
-            tobj = yf.Ticker(_yf_symbol(tk))
-            hist = tobj.history(period="2y", auto_adjust=True)
-            info = tobj.info if hasattr(tobj, "info") else {}
-            cache[tk] = {
-                "hist": hist,
-                "sector": info.get("sector"),
-                "industry": info.get("industry"),
-                "current": (float(hist["Close"].iloc[-1]) if len(hist) else None),
-            }
-        except Exception as e:
-            print(f"    ! yfinance {tk}: {e}", file=sys.stderr)
-            cache[tk] = {}
+        close = closes.get(sym_map[tk])
+        sec, ind = infos.get(tk, (None, None))
+        cache[tk] = {
+            "close": close,
+            "sector": sec,
+            "industry": ind,
+            "current": (float(close.iloc[-1]) if close is not None and len(close) else None),
+        }
 
     for t in targets:
         c = cache.get(t.ticker, {})
-        hist = c.get("hist")
+        close = c.get("close")
         t.sector = c.get("sector")
         t.industry = c.get("industry")
         t.current_price = c.get("current")
-        if hist is not None and len(hist) and t.notification_date:
+        if close is not None and len(close) and t.notification_date:
             try:
                 nd = datetime.strptime(t.notification_date, "%m/%d/%Y")
-                entry = _close_on_or_after(hist, nd)
+                entry = _close_on_or_after(close, nd)
                 t.entry_price = entry
                 if entry and t.current_price:
                     ret = (t.current_price - entry) / entry

@@ -48,6 +48,11 @@
 - **금액은 실패** — 10개 좁은 버킷·희미한 표시. 균등 앵커 10칸 측정해도 버킷 간 0.05~0.08 평탄, 우측 테두리(0.12)만 일관 피크 = 아티팩트. 판별 불가로 amount="" 유지. LLM 비전 아니면 어려움.
 - **통합** — extract_scanned_rows가 OCR+픽셀분석 일괄 수행. pipeline이 이걸로 Transaction 생성(parse_scanned_text 대체). zoom=3 렌더를 OCR·픽셀분석 공용.
 
+## 인리치 속도 최적화 (2026-07-19)
+- **병목** — 티커마다 `history()` + `.info` 순차 호출(~200티커 × 2 HTTP). `.info`가 특히 느림. 전체 실행에서 ~10분 소요.
+- **최적화** — (1) 가격은 `yf.download(group_by='ticker')` 배치 1회로 전 종목, (2) 섹터·산업 `.info`는 ThreadPoolExecutor(12 workers) 병렬. `_batch_closes`가 MultiIndex/평면 컬럼 모두 처리, Close Series로 반환. `_close_on_or_after`도 Series 기반으로 변경.
+- **결과** — 47.8초 (약 12배↑), 수익률 1221·섹터 1213건으로 기존과 동일. 상위 의원(Cleo Fields 14.16% 등)도 일치 확인.
+
 ## 통계 정직성 원칙 (가이드 §7)
 - 모든 수익률에 표본수 n 병기, 소표본(n<5) 상위 노출 제외.
 - "과거 성과가 미래 보장 아님" 고지. 정보 제공용, 투자 권유 아님.
