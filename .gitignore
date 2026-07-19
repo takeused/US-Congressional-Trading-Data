@@ -1,0 +1,19 @@
+# PDF 다운로드 캐시 (재실행으로 재생성)
+cache/
+
+# 파생 산출물 (파이프라인·대시보드가 생성)
+data/*.json
+dashboard/index_*.html
+
+# 파이썬
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# 외부 임베디드 저장소 (세션 중 별도 생성, 우리 프로젝트와 무관)
+US Congressional Trading Data/
