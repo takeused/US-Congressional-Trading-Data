@@ -17,3 +17,4 @@ Thumbs.db
 
 # 외부 임베디드 저장소 (세션 중 별도 생성, 우리 프로젝트와 무관)
 US Congressional Trading Data/
+data/*.log

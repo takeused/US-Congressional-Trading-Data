@@ -8,10 +8,11 @@ from config import DATA_DIR, ensure_dirs
 from fetch_index import fetch_ptr_filings
 from fetch_pdf import fetch_pdf
 from extract import extract_text, ScannedPdfError
-from parse import parse_text, Transaction
+from parse import parse_text, parse_scanned_text, Transaction
 
 
-def run(year: int, *, limit: int | None = None, do_enrich: bool = False) -> dict:
+def run(year: int, *, limit: int | None = None, do_enrich: bool = False,
+        do_ocr: bool = False) -> dict:
     """연도별 PTR 파이프라인을 실행하고 요약 통계를 반환한다."""
     ensure_dirs()
     filings = fetch_ptr_filings(year)
@@ -21,7 +22,8 @@ def run(year: int, *, limit: int | None = None, do_enrich: bool = False) -> dict
     print(f"[{year}] PTR 공시 {len(filings)}건 처리 시작", file=sys.stderr)
 
     all_txns: list[Transaction] = []
-    stats = {"filings": len(filings), "scanned": 0, "download_err": 0, "parse_err": 0}
+    stats = {"filings": len(filings), "scanned": 0, "ocr": 0,
+             "download_err": 0, "parse_err": 0}
 
     for n, f in enumerate(filings, 1):
         try:
@@ -30,17 +32,28 @@ def run(year: int, *, limit: int | None = None, do_enrich: bool = False) -> dict
             stats["download_err"] += 1
             print(f"  ! download {f.doc_id}: {e}", file=sys.stderr)
             continue
+
+        filer = f"{f.first} {f.last}".strip()
         try:
             text = extract_text(pdf)
         except ScannedPdfError:
-            stats["scanned"] += 1  # 스캔 PDF → 스킵 (OCR 미도입)
+            stats["scanned"] += 1
+            if do_ocr:  # 스캔 양식 → OCR fallback (구형 종이양식 전용 파서)
+                try:
+                    from ocr import ocr_pdf
+                    otxt = ocr_pdf(pdf)
+                    otxns = parse_scanned_text(
+                        otxt, filer=filer, state_dst=f.state_dst, doc_id=f.doc_id)
+                    all_txns.extend(otxns)
+                    stats["ocr"] += len(otxns)
+                except Exception as e:
+                    print(f"  ! ocr {f.doc_id}: {e}", file=sys.stderr)
             continue
         except Exception as e:
             stats["parse_err"] += 1
             print(f"  ! extract {f.doc_id}: {e}", file=sys.stderr)
             continue
 
-        filer = f"{f.first} {f.last}".strip()
         txns = parse_text(text, filer=filer, state_dst=f.state_dst, doc_id=f.doc_id)
         all_txns.extend(txns)
         if n % 50 == 0:
@@ -69,8 +82,9 @@ def main():
     ap.add_argument("--year", type=int, required=True, help="대상 연도 (예: 2026)")
     ap.add_argument("--limit", type=int, default=None, help="처리할 공시 수 제한 (테스트용)")
     ap.add_argument("--enrich", action="store_true", help="yfinance 시세·섹터 인리치 실행")
+    ap.add_argument("--ocr", action="store_true", help="스캔 PDF를 OCR로 복원 (구형 양식)")
     args = ap.parse_args()
-    run(args.year, limit=args.limit, do_enrich=args.enrich)
+    run(args.year, limit=args.limit, do_enrich=args.enrich, do_ocr=args.ocr)
 
 
 if __name__ == "__main__":

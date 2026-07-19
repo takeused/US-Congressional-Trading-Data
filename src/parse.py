@@ -30,13 +30,15 @@ class Transaction:
     filer: str = ""
     state_dst: str = ""
     doc_id: str = ""
+    asset_name: str | None = None
     ticker: str | None = None
     asset_type: str | None = None
     owner: str | None = None
-    type: str = ""              # buy / sell / exchange
-    amount: str = ""           # 금액구간 원문
+    type: str = ""              # buy / sell / exchange (스캔 양식은 미상)
+    amount: str = ""           # 금액구간 원문 (스캔 양식은 미상)
     transaction_date: str = ""
     notification_date: str = ""
+    source: str = "text"        # text=pdftotext / ocr=스캔 양식 OCR
     # 인리치 단계(enrich.py)에서 채워지는 필드
     sector: str | None = None
     industry: str | None = None
@@ -94,6 +96,8 @@ def parse_text(text: str, *, filer: str = "", state_dst: str = "", doc_id: str =
         pre = line[: m.start()]  # 거래유형 앞부분 = 자산명 조각
         owner_m = OWNER_RE.search(line)
         ticker, code = _find_ticker_and_code(lines, i, pre)
+        # 자산명: 소유자 표시 제거 후 공백 정리
+        asset_name = re.sub(r"\s+", " ", re.sub(r"^\s*(SP|JT|DC)\b", "", pre)).strip() or None
 
         # 엣지케이스 4: 거래일 > 공시일이면 필러 오타로 보고 제외 (가이드 §5)
         if _to_ord(tdate) > _to_ord(ndate):
@@ -104,6 +108,7 @@ def parse_text(text: str, *, filer: str = "", state_dst: str = "", doc_id: str =
                 filer=filer,
                 state_dst=state_dst,
                 doc_id=doc_id,
+                asset_name=asset_name,
                 ticker=ticker,
                 asset_type=code,
                 owner=owner_m.group(1) if owner_m else None,
@@ -111,6 +116,72 @@ def parse_text(text: str, *, filer: str = "", state_dst: str = "", doc_id: str =
                 amount=re.sub(r"\s+", " ", amt).strip(),
                 transaction_date=tdate,
                 notification_date=ndate,
+            )
+        )
+    return txns
+
+
+# ── 구형 스캔 종이양식(OCR) 전용 파서 ─────────────────────────────
+# 이 양식은 거래유형·금액이 체크박스 X 표시라 인라인 추출 불가.
+# 안정적으로 얻을 수 있는 날짜·자산명·티커·소유자만 복원한다 (source=ocr).
+SCAN_DATE_RE = re.compile(r"\b(\d{1,2}/\d{1,2}/\d{2,4})\b")
+SCAN_TICKER_PAREN_RE = re.compile(r"\(([A-Z]{1,6})\)")
+# 괄호 안이라도 티커가 아닌 흔한 단어 (OCR가 펀드명 괄호를 오인)
+_PAREN_STOP = {"THE", "NEW", "US", "AND", "FOR", "FRANCE", "INC", "CO",
+               "LP", "TR", "SER", "CL", "ADR", "USD", "NA", "NV", "PLC"}
+
+
+def _norm_year(date: str) -> str:
+    """MM/DD/YY → MM/DD/20YY (전자 양식과 자리수 통일)."""
+    m, d, y = date.split("/")
+    if len(y) == 2:
+        y = "20" + y
+    return f"{int(m):02d}/{int(d):02d}/{y}"
+
+
+def _scan_ticker(asset_pre: str) -> str | None:
+    """스캔 행에서 티커 추출: 괄호형만 (안정성 우선).
+
+    꼬리 대문자 토큰 방식은 'Common'→CMN, 'US Treasury'→US 같은
+    노이즈를 대량 생성해 제외. 티커 없으면 asset_name으로 식별.
+    """
+    m = SCAN_TICKER_PAREN_RE.search(asset_pre)
+    if m and m.group(1) not in _PAREN_STOP:
+        return m.group(1)
+    return None
+
+
+def parse_scanned_text(text: str, *, filer: str = "", state_dst: str = "",
+                       doc_id: str = "") -> list[Transaction]:
+    """OCR 텍스트에서 구형 양식 거래행(날짜 2개 포함)을 추출한다."""
+    txns: list[Transaction] = []
+    for line in text.splitlines():
+        if "Example" in line or "MM" in line:  # 예시·헤더 행 제외
+            continue
+        dates = SCAN_DATE_RE.findall(line)
+        if len(dates) < 2:
+            continue
+        first_date_pos = line.find(dates[0])
+        asset_pre = line[:first_date_pos]
+        owner_m = OWNER_RE.search(line)
+        # 자산명: 소유자 표시 제거
+        asset = re.sub(r"^\s*(SP|JT|DC)\b", "", asset_pre).strip(" \t-")
+        if len(asset) < 3:  # 자산명 없는 노이즈 행 제외
+            continue
+        txns.append(
+            Transaction(
+                filer=filer,
+                state_dst=state_dst,
+                doc_id=doc_id,
+                asset_name=asset or None,
+                ticker=_scan_ticker(asset_pre),
+                asset_type=None,       # 스캔 양식은 자산코드 없음
+                owner=owner_m.group(1) if owner_m else None,
+                type="",              # 체크박스라 미상
+                amount="",            # 체크박스라 미상
+                transaction_date=_norm_year(dates[0]),
+                notification_date=_norm_year(dates[1]),
+                source="ocr",
             )
         )
     return txns

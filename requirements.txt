@@ -1,1 +1,5 @@
 yfinance>=0.2.40
+
+# 스캔 PDF OCR (--ocr) 용
+pymupdf>=1.24
+rapidocr-onnxruntime>=1.3
